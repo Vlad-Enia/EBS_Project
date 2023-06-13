@@ -3,16 +3,25 @@ import org.apache.storm.LocalCluster;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.TopologyBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
+class Stats
+{
+    static float publications_number;
+    static float latency;
+    static float match_number;
+}
 public class Main {
     public static void main(String[] args) {
         try {
             TopologyBuilder builder = new TopologyBuilder();
-            PublisherSpout publisher = new PublisherSpout();
+            PublisherSpout publisher = new PublisherSpout(args[0]);
 
             builder.setSpout("publisher_spout", publisher);
 
             for (int i = 1; i <= 3; ++i) {
-                builder.setSpout("subscription" + i, new SubscriptionSpout());
+                builder.setSpout("subscription" + i, new SubscriptionSpout(args[0]));
             }
             for (int i = 1; i <= 3; ++i) {
                 builder.setBolt("broker" + i, new BrokerBolt()).allGrouping("publisher_spout").shuffleGrouping("subscription1", "broker" + i).shuffleGrouping("subscription2", "broker" + i).shuffleGrouping("subscription3", "broker" + i);
@@ -33,7 +42,7 @@ public class Main {
             cluster.submitTopology("publish_subscribe_topology", config, topology);
 
             try {
-                Thread.sleep(20000);
+                Thread.sleep(180 * 1000);
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -43,6 +52,11 @@ public class Main {
             cluster.shutdown();
 
             cluster.close();
+            Stats.latency /= Stats.publications_number;
+            Stats.match_number /= Stats.publications_number;
+            System.out.println("Number of publications: " + Stats.publications_number);
+            System.out.println("Avg latency(milli): " + Stats.latency);
+            System.out.println("Avg match rate: " + Stats.match_number);
         } catch(Exception ex) {
 
         }

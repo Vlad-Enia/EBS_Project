@@ -1,6 +1,7 @@
 import java.util.Map;
 import java.util.HashMap;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -25,7 +26,14 @@ public class NotifierBolt extends BaseRichBolt {
     }
 
     public void execute(Tuple input) {
-        System.out.println(this.task + " Got publication: stationid " + input.getString(0) + ", city " + input.getString(1) + ", temp " +  input.getString(2) + ", wind " + input.getString(3));
+        try
+        {
+            PublicationOuterClass.Publication pub = PublicationOuterClass.Publication.parseFrom(input.getBinaryByField("notification_data"));
+            System.out.println(this.task + " Got publication: " + pub.toString());
+        } catch (InvalidProtocolBufferException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
